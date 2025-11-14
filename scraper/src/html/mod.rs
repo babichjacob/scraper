@@ -8,8 +8,8 @@ use std::iter::FusedIterator;
 use ego_tree::iter::Nodes;
 use ego_tree::Tree;
 use html5ever::serialize::SerializeOpts;
-use html5ever::tree_builder::QuirksMode;
-use html5ever::{driver, serialize, QualName};
+use html5ever::tree_builder::{QuirksMode, TreeBuilderOpts};
+use html5ever::{driver, serialize, ParseOpts, QualName};
 use selectors::matching::SelectorCaches;
 use tendril::TendrilSink;
 
@@ -35,6 +35,17 @@ pub struct Html {
 
     /// The node tree.
     pub tree: Tree<Node>,
+}
+
+/// html5ever parse options internal to this crate (the user is not currently allowed to modify them)
+fn parse_opts() -> ParseOpts {
+    ParseOpts {
+        tokenizer: Default::default(),
+        tree_builder: TreeBuilderOpts {
+            scripting_enabled: false,
+            ..Default::default()
+        },
+    }
 }
 
 impl Html {
@@ -77,8 +88,7 @@ impl Html {
     /// # }
     /// ```
     pub fn parse_document(document: &str) -> Self {
-        let parser =
-            driver::parse_document(HtmlTreeSink::new(Self::new_document()), Default::default());
+        let parser = driver::parse_document(HtmlTreeSink::new(Self::new_document()), parse_opts());
         parser.one(document)
     }
 
@@ -86,7 +96,7 @@ impl Html {
     pub fn parse_fragment(fragment: &str) -> Self {
         let parser = driver::parse_fragment(
             HtmlTreeSink::new(Self::new_fragment()),
-            Default::default(),
+            parse_opts(),
             QualName::new(None, ns!(html), local_name!("body")),
             Vec::new(),
             false,
